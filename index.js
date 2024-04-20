@@ -43,6 +43,21 @@ async function run() {
 
 
 
+        // API endpoint to get a user by email
+        app.get('/user/:email', async (req, res) => {
+            const email = req.params.email;
+      
+            try {
+              const result = await usersCollection.findOne({ email: email });
+              res.json(result);
+            } catch (error) {
+              console.error('Error fetching user data:', error);
+              res.status(500).json({ error: 'Internal Server Error' });
+            }
+          });
+
+
+
     
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
