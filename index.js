@@ -32,7 +32,8 @@ async function run() {
 
 
     const usersCollection = client.db('ims').collection('users');
-    
+    const itemsCollection = client.db('ims').collection('items');
+
       //Add endpoint to retrieve all users
       app.get('/users', async (req, res) => {
         const result = await usersCollection.find().toArray();
@@ -101,6 +102,15 @@ async function run() {
         const result = await usersCollection.deleteOne(query);
         res.send(result);
       })
+
+
+
+      app.post('/items', async (req, res) => {
+        const items = req.body;
+        const result = await itemsCollection.insertOne(items);
+        res.send(result);
+      });
+  
   
 
 
