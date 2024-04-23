@@ -48,6 +48,34 @@ async function run() {
     });
 
 
+     //Endpoint to update user status by ID
+     app.patch('/users/status/:id', async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const { status } = req.body;
+        console.log(status);
+  
+        // Allow 'none' as a valid status for "No Role"
+        if (['admin', 'monitor', 'coordinator', 'none'].includes(status)) {
+          const updatedDoc = {
+            $set: {
+              status: status,
+            },
+          };
+  
+          try {
+            const result = await usersCollection.updateOne(filter, updatedDoc);
+            res.json(result);
+          } catch (error) {
+            console.error('Error updating user status:', error);
+            res.status(500).json({ error: 'Internal Server Error' });
+          }
+        } else {
+          res.status(400).json({ error: 'Invalid status value' });
+        }
+      });
+
+
 
         // API endpoint to get a user by email
         app.get('/user/:email', async (req, res) => {
