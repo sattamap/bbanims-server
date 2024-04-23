@@ -104,8 +104,15 @@ async function run() {
       })
 
 
+     //Add endpoint to retrieve all items
+      app.get('/items', async (req, res) => {
+        const result = await itemsCollection.find().toArray();
+        res.json(result);
+      });
 
-      app.post('/items', async (req, res) => {
+
+    //POST endpoint to add item
+      app.post('/item', async (req, res) => {
         const items = req.body;
         const result = await itemsCollection.insertOne(items);
         res.send(result);
