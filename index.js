@@ -21,7 +21,8 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
+  
 });
 
 async function run() {
@@ -32,7 +33,12 @@ async function run() {
 
     const usersCollection = client.db('ims').collection('users');
     
-
+      //Add endpoint to retrieve all users
+      app.get('/users', async (req, res) => {
+        const result = await usersCollection.find().toArray();
+        res.send(result);
+      });
+  
 
     // Add endpoint to add a new user
     app.post('/user', async (req, res) => {
@@ -46,6 +52,7 @@ async function run() {
         // API endpoint to get a user by email
         app.get('/user/:email', async (req, res) => {
             const email = req.params.email;
+            console.log("user mail is:",email);
       
             try {
               const result = await usersCollection.findOne({ email: email });
@@ -61,7 +68,7 @@ async function run() {
     
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
