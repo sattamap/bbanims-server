@@ -127,7 +127,27 @@ async function run() {
         res.send(result);
       });
 
+      //PATCH endpoint to update item
+
+      app.patch('/items/:id', async (req, res) => {
+        const item = req.body;
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) }
+        const updatedDoc = {
+          $set: {
+            itemName: item.itemName,
+            condition: item.condition,
+            quantity: item.quantity,
+            date: item.date,
+            detail: item.detail,
+            image: item.image,
+          }
+        }
   
+        const result = await itemsCollection.updateOne(filter, updatedDoc)
+        res.send(result);
+      })
+
 
 
            // Delete a item by ID
