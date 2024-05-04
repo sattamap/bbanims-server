@@ -117,6 +117,25 @@ async function run() {
         const result = await itemsCollection.insertOne(items);
         res.send(result);
       });
+
+
+
+           // Delete a bird by ID
+     app.delete('/item/:itemId', async (req, res) => {
+        const itemId = req.params.itemId;
+  
+        try {
+          const result = await itemsCollection.deleteOne({ _id: new ObjectId(itemId) });
+          if (result.deletedCount === 1) {
+            res.json({ success: true, message: 'Item deleted successfully.' });
+          } else {
+            res.status(404).json({ success: false, message: 'Item not found.' });
+          }
+        } catch (error) {
+          console.error('Error deleting item:', error);
+          res.status(500).json({ success: false, message: 'Internal server error.' });
+        }
+      });
   
   
 
