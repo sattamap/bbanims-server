@@ -110,6 +110,15 @@ async function run() {
         res.json(result);
       });
 
+      //Add endpoint to retrieve item by id
+
+      app.get('/item/:id', async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) }
+        const result = await itemsCollection.findOne(query);
+        res.send(result);
+      })
+
 
     //POST endpoint to add item
       app.post('/item', async (req, res) => {
@@ -118,9 +127,10 @@ async function run() {
         res.send(result);
       });
 
+  
 
 
-           // Delete a bird by ID
+           // Delete a item by ID
      app.delete('/item/:itemId', async (req, res) => {
         const itemId = req.params.itemId;
   
