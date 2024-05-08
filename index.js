@@ -81,7 +81,7 @@ async function run() {
         // API endpoint to get a user by email
         app.get('/user/:email', async (req, res) => {
             const email = req.params.email;
-            console.log("user mail is:",email);
+            // console.log("user mail is:",email);
       
             try {
               const result = await usersCollection.findOne({ email: email });
