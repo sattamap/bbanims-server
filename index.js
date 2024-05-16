@@ -163,7 +163,11 @@ async function run() {
       const updatedDoc = {
         $set: {
           itemName: item.itemName,
+          category: item.category,
+          model: item.category,
+          origin: item.origin,
           condition: item.condition,
+          location: item.location,
           quantity: item.quantity,
           date: item.date,
           detail: item.detail,
