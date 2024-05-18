@@ -116,6 +116,7 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await itemsCollection.findOne(query);
+      console.log(result);
       res.send(result);
     })
 
@@ -164,11 +165,12 @@ async function run() {
         $set: {
           itemName: item.itemName,
           category: item.category,
-          model: item.category,
+          model: item.model,
           origin: item.origin,
           condition: item.condition,
-          location: item.location,
-          quantity: item.quantity,
+          locationGood: item.locationGood,
+          locationBad: item.locationBad,
+          totalQuantity: item.totalQuantity,
           date: item.date,
           detail: item.detail,
           image: item.image,
