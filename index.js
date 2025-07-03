@@ -26,11 +26,17 @@ const verifyToken = (req, res, next) => {
   if (!token) return res.status(401).send({ message: 'Unauthorized' });
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-    if (err) return res.status(403).send({ message: 'Forbidden' });
+    if (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).send({ message: 'TokenExpired' });
+      }
+      return res.status(403).send({ message: 'Forbidden' });
+    }
     req.user = decoded;
     next();
   });
 };
+
 
 
 // MongoDB connection URI
