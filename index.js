@@ -99,122 +99,114 @@ function createRoutesForBlock(block) {
   //   res.send(result);
   // });
 
-  app.get(`${prefix}/items/all`, verifyToken, async (req, res) => {
-  try {
-    const items = await itemsCollection.find({}).toArray();
-    res.send(items);
-  } catch (error) {
-    console.error(`Error in ${prefix}/items/all:`, error);
-    res.status(500).send({ error: "Failed to fetch all items" });
-  }
-});
-
-
+  app.get(`${prefix}/items`, verifyToken, async (req, res) => {
+    try {
+      const items = await itemsCollection.find({}).toArray();
+      res.send(items);
+    } catch (error) {
+      console.error(`Error in ${prefix}/items/all:`, error);
+      res.status(500).send({ error: "Failed to fetch all items" });
+    }
+  });
 
   // Fetch Items with Search, Pagination, and Category Filter
-// Suggested optimized Fetch Items route with MongoDB text index and better performance
+  // Suggested optimized Fetch Items route with MongoDB text index and better performance
 
-// app.get(`${prefix}/items`, verifyToken, async (req, res) => {
-//   try {
-//     const page = Math.max(0, parseInt(req.query.page) - 1) || 0;
-//     const limit = parseInt(req.query.limit) || 5;
-//     const search = req.query.search?.trim() || "";
-//     const category = req.query.category?.trim() || "";
+  // app.get(`${prefix}/items`, verifyToken, async (req, res) => {
+  //   try {
+  //     const page = Math.max(0, parseInt(req.query.page) - 1) || 0;
+  //     const limit = parseInt(req.query.limit) || 5;
+  //     const search = req.query.search?.trim() || "";
+  //     const category = req.query.category?.trim() || "";
 
-//     const query = {};
+  //     const query = {};
 
-//     if (search) {
-//       if (search.length >= 3) {
-//         // Use text search for longer keywords (ensure index is created)
-//         query.$text = { $search: search };
-//       } else {
-//         // Use regex for short/partial searches
-//         query.$or = [
-//           { itemName: { $regex: search, $options: "i" } },
-//           { model: { $regex: search, $options: "i" } },
-//           { origin: { $regex: search, $options: "i" } },
-//         ];
-//       }
-//     }
+  //     if (search) {
+  //       if (search.length >= 3) {
+  //         // Use text search for longer keywords (ensure index is created)
+  //         query.$text = { $search: search };
+  //       } else {
+  //         // Use regex for short/partial searches
+  //         query.$or = [
+  //           { itemName: { $regex: search, $options: "i" } },
+  //           { model: { $regex: search, $options: "i" } },
+  //           { origin: { $regex: search, $options: "i" } },
+  //         ];
+  //       }
+  //     }
 
-//     if (category) {
-//       query.category = category;
-//     }
+  //     if (category) {
+  //       query.category = category;
+  //     }
 
-//     const totalItems = await itemsCollection.countDocuments(query);
+  //     const totalItems = await itemsCollection.countDocuments(query);
 
-//     const sortOption = query.$text ? { score: { $meta: "textScore" } } : { _id: -1 };
+  //     const sortOption = query.$text ? { score: { $meta: "textScore" } } : { _id: -1 };
 
-//     const items = await itemsCollection
-//       .find(query, query.$text ? { score: { $meta: "textScore" } } : {})
-//       .sort(sortOption)
-//       .skip(page * limit)
-//       .limit(limit)
-//       .toArray();
+  //     const items = await itemsCollection
+  //       .find(query, query.$text ? { score: { $meta: "textScore" } } : {})
+  //       .sort(sortOption)
+  //       .skip(page * limit)
+  //       .limit(limit)
+  //       .toArray();
 
-//     const categoriesAgg = await itemsCollection.aggregate([
-//       { $group: { _id: "$category" } },
-//       { $project: { category: "$_id", _id: 0 } }
-//     ]).toArray();
+  //     const categoriesAgg = await itemsCollection.aggregate([
+  //       { $group: { _id: "$category" } },
+  //       { $project: { category: "$_id", _id: 0 } }
+  //     ]).toArray();
 
-//     const categories = categoriesAgg.map(c => c.category);
+  //     const categories = categoriesAgg.map(c => c.category);
 
-//     res.send({
-//       items,
-//       totalCount: totalItems,
-//       categories,
-//     });
-//   } catch (error) {
-//     console.error(`Error in ${prefix}/items:`, error);
-//     res.status(500).send({ error: "Failed to fetch items" });
-//   }
-// });
+  //     res.send({
+  //       items,
+  //       totalCount: totalItems,
+  //       categories,
+  //     });
+  //   } catch (error) {
+  //     console.error(`Error in ${prefix}/items:`, error);
+  //     res.status(500).send({ error: "Failed to fetch items" });
+  //   }
+  // });
 
-/* Make sure to create the following indexes in MongoDB shell or Compass:
+  /* Make sure to create the following indexes in MongoDB shell or Compass:
 
   db.items.createIndex({ itemName: "text", model: "text", origin: "text" })
   db.items.createIndex({ category: 1 })
 
 */
 
+  //   app.get(`${prefix}/items`, verifyToken, async (req, res) => {
+  //   const page = parseInt(req.query.page) || 0; // page number (0-based index)
+  //   const limit = parseInt(req.query.limit) || 5; // items per page
 
+  //   const search = req.query.search?.toLowerCase() || "";
+  //   const category = req.query.category || "";
 
+  //   const query = {};
 
-  
+  //   if (search) {
+  //     query.$or = [
+  //       { itemName: { $regex: search, $options: "i" } },
+  //       { model: { $regex: search, $options: "i" } }
+  //     ];
+  //   }
 
-//   app.get(`${prefix}/items`, verifyToken, async (req, res) => {
-//   const page = parseInt(req.query.page) || 0; // page number (0-based index)
-//   const limit = parseInt(req.query.limit) || 5; // items per page
+  //   if (category) {
+  //     query.category = category;
+  //   }
 
-//   const search = req.query.search?.toLowerCase() || "";
-//   const category = req.query.category || "";
+  //   const totalItems = await itemsCollection.countDocuments(query);
+  //   const items = await itemsCollection
+  //     .find(query)
+  //     .skip(page * limit)
+  //     .limit(limit)
+  //     .toArray();
 
-//   const query = {};
-
-//   if (search) {
-//     query.$or = [
-//       { itemName: { $regex: search, $options: "i" } },
-//       { model: { $regex: search, $options: "i" } }
-//     ];
-//   }
-
-//   if (category) {
-//     query.category = category;
-//   }
-
-//   const totalItems = await itemsCollection.countDocuments(query);
-//   const items = await itemsCollection
-//     .find(query)
-//     .skip(page * limit)
-//     .limit(limit)
-//     .toArray();
-
-//   res.send({
-//     totalItems,
-//     items,
-//   });
-// });
-
+  //   res.send({
+  //     totalItems,
+  //     items,
+  //   });
+  // });
 
   // 🔒 GET item by ID (protected)
   app.get(`${prefix}/items/:id`, verifyToken, async (req, res) => {
@@ -247,9 +239,9 @@ function createRoutesForBlock(block) {
     const notificationsCollection = dbMap["main"].collection("notifications");
     await notificationsCollection.insertOne({
       type: "item_added",
-      message: `Admin/Coordinator ${req.user.email} added "${newItem.itemName}" (${
-        newItem.model
-      }) in ${block.toUpperCase()} block.`,
+      message: `Admin/Coordinator ${req.user.email} added "${
+        newItem.itemName
+      }" (${newItem.model}) in ${block.toUpperCase()} block.`,
       timestamp: new Date(),
       seen: false,
       block,
@@ -259,26 +251,27 @@ function createRoutesForBlock(block) {
   });
 
   // 🔒 Update item (PATCH)
-app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
-  const result = await itemsCollection.updateOne(
-    { _id: new ObjectId(req.params.id) },
-    { $set: req.body }
-  );
+  app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
+    const result = await itemsCollection.updateOne(
+      { _id: new ObjectId(req.params.id) },
+      { $set: req.body }
+    );
 
-  // ✅ Auto-notify Admin after update
-  const updatedItem = req.body;
-  const notificationsCollection = dbMap["main"].collection("notifications");
-  await notificationsCollection.insertOne({
-    type: "item_updated",
-    message: `Admin/Coordinator ${req.user.email} updated "${updatedItem.itemName}" (${updatedItem.model}) in ${block.toUpperCase()} block.`,
-    timestamp: new Date(),
-    seen: false,
-    block,
+    // ✅ Auto-notify Admin after update
+    const updatedItem = req.body;
+    const notificationsCollection = dbMap["main"].collection("notifications");
+    await notificationsCollection.insertOne({
+      type: "item_updated",
+      message: `Admin/Coordinator ${req.user.email} updated "${
+        updatedItem.itemName
+      }" (${updatedItem.model}) in ${block.toUpperCase()} block.`,
+      timestamp: new Date(),
+      seen: false,
+      block,
+    });
+
+    res.send(result);
   });
-
-  res.send(result);
-});
-
 
   // 🔒 Delete item (DELETE)
   app.delete(`${prefix}/item/:itemId`, verifyToken, async (req, res) => {
@@ -294,7 +287,6 @@ app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
     res.send(result);
   });
 
-  // 🔒 Create a new record
   // 🔒 Create a new record
   app.post(`${prefix}/records`, verifyToken, async (req, res) => {
     try {
@@ -320,6 +312,30 @@ app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
         item_faulty_use = 0,
         item_transfer = 0, // ✅ Support transfer
       } = items_quantity;
+
+      const quantities = [
+        item_store,
+        item_use,
+        item_faulty_store,
+        item_faulty_use,
+        item_transfer,
+      ];
+
+      const hasInvalidQty = quantities.some(
+        (qty) => Number(qty) < 0 || isNaN(Number(qty))
+      );
+
+      const hasZeroQty = quantities.every((qty) => Number(qty) === 0);
+
+      if (hasInvalidQty) {
+        return res.status(400).json({ error: "Invalid quantity value" });
+      }
+
+      if (hasZeroQty) {
+        return res
+          .status(400)
+          .json({ error: "At least one quantity must be greater than 0" });
+      }
 
       const newRecord = {
         itemName,
@@ -488,26 +504,25 @@ function createNotificationRoutes() {
 
   // Get all notifications (can filter later by role if needed)
 
-app.get("/notifications/all", verifyToken, async (req, res) => {
-  const { block } = req.query;
+  app.get("/notifications/all", verifyToken, async (req, res) => {
+    const { block } = req.query;
 
-  if (!block) {
-    return res.status(400).send({ message: "Block is required" });
-  }
+    if (!block) {
+      return res.status(400).send({ message: "Block is required" });
+    }
 
-  try {
-    const notifications = await notificationsCollection
-      .find({ block })
-      .sort({ timestamp: -1 })
-      .toArray();
+    try {
+      const notifications = await notificationsCollection
+        .find({ block })
+        .sort({ timestamp: -1 })
+        .toArray();
 
-    res.send(notifications);
-  } catch (err) {
-    console.error("Failed to fetch all notifications:", err);
-    res.status(500).send({ message: "Internal Server Error" });
-  }
-});
-
+      res.send(notifications);
+    } catch (err) {
+      console.error("Failed to fetch all notifications:", err);
+      res.status(500).send({ message: "Internal Server Error" });
+    }
+  });
 
   app.get("/notifications", verifyToken, async (req, res) => {
     const { block, skip = 0, limit = 5 } = req.query;
@@ -555,7 +570,6 @@ app.get("/notifications/all", verifyToken, async (req, res) => {
     });
     res.send({ count });
   });
-
 }
 
 // Start the server
