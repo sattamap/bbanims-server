@@ -540,6 +540,8 @@ const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const generatePDF = require("./utils/generatePDF");
+
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -582,6 +584,8 @@ const client = new MongoClient(uri, {
   },
 });
 
+
+
 let dbMap = {};
 
 async function connectDatabases() {
@@ -606,6 +610,24 @@ function createRoutesForBlock(block) {
   const itemsCollection = itemsDB.collection("items");
   const servicesCollection = servicesDB.collection("services");
   const recordsCollection = itemsDB.collection("records");
+
+
+app.post("/generate-pdf", async (req, res) => {
+  try {
+    const { services } = req.body;
+    const pdfBuffer = await generatePDF(services);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "attachment; filename=bangla-service-report.pdf");
+
+    return res.end(pdfBuffer); // ✅ use .end() to send raw buffer
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    return res.status(500).send("Failed to generate PDF");
+  }
+});
+
+
 
   // Generate JWT token
   app.post("/jwt", (req, res) => {
