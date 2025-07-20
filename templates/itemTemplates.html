@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Item Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      font-size: 11px;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    th, td {
+      border: 1px solid #333;
+      padding: 4px;
+      text-align: left;
+      word-wrap: break-word;
+    }
+
+    th {
+      background-color: #eee;
+    }
+
+    strong {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Item Report</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name, Model & Origin</th>
+        <th>Item (Store)</th>
+        <th>Item (Use)</th>
+        <th>Item (Faulty Store)</th>
+        <th>Item (Faulty Use)</th>
+        <th>Item (Transfer)</th>
+        <th>Total</th>
+        <th>Location (Good)</th>
+        <th>Category</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+</body>
+</html>

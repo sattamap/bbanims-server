@@ -2,8 +2,8 @@ const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer");
 
-const generatePDF = async (services) => {
-  const htmlPath = path.join(__dirname, "../templates/templates.html");
+const generateServicePDF = async (services) => {
+  const htmlPath = path.join(__dirname, "../templates/serviceTemplates.html");
   let html = fs.readFileSync(htmlPath, "utf-8");
 
   const tableRows = services
@@ -39,4 +39,4 @@ const generatePDF = async (services) => {
   return pdfBuffer;
 };
 
-module.exports = generatePDF;
+module.exports = generateServicePDF;

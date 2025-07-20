@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <title>বাংলা সার্ভিস রিপোর্ট</title>
+<style>
+  @font-face {
+    font-family: "TiroBangla";
+    src: url("../fonts/TiroBangla-Regular.ttf") format("truetype");
+  }
+
+  @page {
+    margin: 40px 30px; /* Ensures proper margin between pages */
+  }
+
+  body {
+    font-family: "TiroBangla", sans-serif;
+    font-size: 12px;
+    padding: 0; /* Use @page margin instead of body padding */
+  }
+
+  h1 {
+    text-align: center;
+    margin: 20px 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: auto;
+  }
+
+  th, td {
+    border: 1px solid #333;
+    padding: 6px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #eee;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+</style>
+
+</head>
+<body>
+  <h1>Notification Report</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Message</th>
+        <th>Type</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+</body>
+</html>

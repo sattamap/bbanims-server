@@ -540,8 +540,11 @@ const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const generatePDF = require("./utils/generatePDF");
 
+const generateServicePDF = require("./utils/generateServicePDF");
+const generateItemPDF = require("./utils/generateItemPDF");
+const generateRecordPDF = require("./utils/generateRecordPDF"); 
+const generateNotificationPDF = require("./utils/generateNotificationPDF"); 
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -584,8 +587,6 @@ const client = new MongoClient(uri, {
   },
 });
 
-
-
 let dbMap = {};
 
 async function connectDatabases() {
@@ -611,23 +612,40 @@ function createRoutesForBlock(block) {
   const servicesCollection = servicesDB.collection("services");
   const recordsCollection = itemsDB.collection("records");
 
+  app.post("/generate-pdf", async (req, res) => {
+    try {
+      const { data, type = "services", filename = "report" } = req.body;
 
-app.post("/generate-pdf", async (req, res) => {
-  try {
-    const { services } = req.body;
-    const pdfBuffer = await generatePDF(services);
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return res.status(400).send("Invalid or empty data provided.");
+      }
 
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "attachment; filename=bangla-service-report.pdf");
+      let pdfBuffer;
 
-    return res.end(pdfBuffer); // ✅ use .end() to send raw buffer
-  } catch (error) {
-    console.error("PDF generation error:", error);
-    return res.status(500).send("Failed to generate PDF");
-  }
-});
+      if (type === "services") {
+        pdfBuffer = await generateServicePDF(data);
+      } else if (type === "items") {
+        pdfBuffer = await generateItemPDF(data);
+      } else if (type === "records") {
+        pdfBuffer = await generateRecordPDF(data); // ✅ new handler
+      } else if (type === "notifications") {
+        pdfBuffer = await generateNotificationPDF(data); // ✅ new handler
+      } else {
+        return res.status(400).send("Invalid PDF type.");
+      }
 
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=${filename}.pdf`
+      );
 
+      return res.end(pdfBuffer);
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      return res.status(500).send("Failed to generate PDF");
+    }
+  });
 
   // Generate JWT token
   app.post("/jwt", (req, res) => {
