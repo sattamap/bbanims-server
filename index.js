@@ -543,8 +543,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const generateServicePDF = require("./utils/generateServicePDF");
 const generateItemPDF = require("./utils/generateItemPDF");
-const generateRecordPDF = require("./utils/generateRecordPDF"); 
-const generateNotificationPDF = require("./utils/generateNotificationPDF"); 
+const generateRecordPDF = require("./utils/generateRecordPDF");
+const generateNotificationPDF = require("./utils/generateNotificationPDF");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -651,7 +651,7 @@ function createRoutesForBlock(block) {
   app.post("/jwt", (req, res) => {
     const user = req.body;
     const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "2h",
     });
     res
       .cookie("token", token, {
@@ -689,10 +689,15 @@ function createRoutesForBlock(block) {
   });
 
   // 🔒 GET item by ID (protected)
-  app.get(`${prefix}/items/:id`, verifyToken, async (req, res) => {
-    const result = await itemsCollection.findOne({
-      _id: new ObjectId(req.params.id),
-    });
+  app.get(`${prefix}/items/:id`, async (req, res) => {
+    const { id } = req.params;
+
+    if (!id || id.length !== 24) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const _id = new ObjectId(id);
+    const result = await itemsCollection.findOne({ _id });
     res.send(result);
   });
 
@@ -732,13 +737,22 @@ function createRoutesForBlock(block) {
   });
 
   // 🔒 Update item (PATCH)
-  app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
+app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
+  const { id } = req.params;
+
+  // ✅ Validate ObjectId format
+  if (!id || id.length !== 24) {
+    return res.status(400).json({ message: "Invalid ID format" });
+  }
+
+  try {
+    const _id = new ObjectId(id);
     const result = await itemsCollection.updateOne(
-      { _id: new ObjectId(req.params.id) },
+      { _id },
       { $set: req.body }
     );
 
-    // ✅ Auto-notify Admin after update
+    // ✅ Notify Admin after successful update
     const updatedItem = req.body;
     const notificationsCollection = dbMap["main"].collection("notifications");
     await notificationsCollection.insertOne({
@@ -753,14 +767,35 @@ function createRoutesForBlock(block) {
     });
 
     res.send(result);
-  });
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+});
+
 
   // 🔒 Delete item (DELETE)
   app.delete(`${prefix}/item/:itemId`, verifyToken, async (req, res) => {
-    const result = await itemsCollection.deleteOne({
-      _id: new ObjectId(req.params.itemId),
-    });
-    res.send(result);
+    const { itemId } = req.params;
+
+    // ✅ Validate ObjectId format
+    if (!itemId || itemId.length !== 24) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    try {
+      const _id = new ObjectId(itemId);
+      const result = await itemsCollection.deleteOne({ _id });
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+
+      res.send(result);
+    } catch (error) {
+      console.error("Delete error:", error);
+      res.status(500).json({ message: "Something went wrong" });
+    }
   });
 
   app.post(`${prefix}/service`, verifyToken, async (req, res) => {

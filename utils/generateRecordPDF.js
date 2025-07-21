@@ -2,6 +2,15 @@ const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer");
 
+const enToBnDigits = (input) => {
+  const enDigits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+  const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  return input.toString().split("").map(char => {
+    const index = enDigits.indexOf(char);
+    return index !== -1 ? bnDigits[index] : char;
+  }).join("");
+};
+
 const generateItemPDF = async (records) => {
   const htmlPath = path.join(__dirname, "../templates/recordTemplates.html");
   let html = fs.readFileSync(htmlPath, "utf-8");
@@ -10,17 +19,17 @@ const generateItemPDF = async (records) => {
     .map(
       (item, index) => `
       <tr>
-        <td>${index + 1}</td>
+        <td>${enToBnDigits(index + 1)}</td>
         <td>
           <strong>${item.itemName}</strong><br/>
           Model: ${item.model || "-"}<br/>
           Category: ${item.category || "-"}
         </td>
-        <td>${item?.items_quantity?.item_store ?? 0}</td>
-        <td>${item?.items_quantity?.item_use ?? 0}</td>
-        <td>${item?.items_quantity?.item_faulty_store ?? 0}</td>
-        <td>${item?.items_quantity?.item_faulty_use ?? 0}</td>
-        <td>${item?.items_quantity?.item_transfer ?? 0}</td>
+        <td>${enToBnDigits(item?.items_quantity?.item_store ?? 0)}</td>
+        <td>${enToBnDigits(item?.items_quantity?.item_use ?? 0)}</td>
+        <td>${enToBnDigits(item?.items_quantity?.item_faulty_store ?? 0)}</td>
+        <td>${enToBnDigits(item?.items_quantity?.item_faulty_use ?? 0)}</td>
+        <td>${enToBnDigits(item?.items_quantity?.item_transfer ?? 0)}</td>
         <td>${item.locationGood || "-"}</td>
         <td>${item.purpose || "-"}</td>
         <td>${item.date || "-"}</td>
