@@ -1,538 +1,3 @@
-// const express = require("express");
-// require("dotenv").config();
-// const cors = require("cors");
-// const jwt = require("jsonwebtoken");
-// const cookieParser = require("cookie-parser");
-
-// const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-
-// const app = express();
-// const port = process.env.PORT || 5000;
-
-// // Middleware
-// app.use(
-//   cors({
-//     origin: ["http://localhost:5173"],
-//     credentials: true,
-//   })
-// );
-// app.use(express.json());
-// app.use(cookieParser());
-
-// const verifyToken = (req, res, next) => {
-//   const token = req.cookies.token;
-
-//   if (!token) return res.status(401).send({ message: "Unauthorized" });
-
-//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-//     if (err) {
-//       if (err.name === "TokenExpiredError") {
-//         return res.status(401).send({ message: "TokenExpired" });
-//       }
-//       return res.status(403).send({ message: "Forbidden" });
-//     }
-//     req.user = decoded;
-//     next();
-//   });
-// };
-
-// // MongoDB connection URI
-// const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.sh8rqq2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
-
-// const client = new MongoClient(uri, {
-//   serverApi: {
-//     version: ServerApiVersion.v1,
-//     strict: true,
-//     deprecationErrors: true,
-//   },
-// });
-
-// let dbMap = {};
-
-// async function connectDatabases() {
-//   await client.connect();
-//   dbMap["head_items"] = client.db("sms_head_items");
-//   dbMap["local_items"] = client.db("sms_local_items");
-//   dbMap["head_services"] = client.db("sms_head_services");
-//   dbMap["local_services"] = client.db("sms_local_services");
-//   dbMap["main"] = client.db("sms_main");
-//   console.log("✅ Connected to all SMS databases");
-// }
-
-// function getDB(block) {
-//   return dbMap[block];
-// }
-
-// function createRoutesForBlock(block) {
-//   const itemsDB = getDB(`${block}_items`);
-//   const servicesDB = getDB(`${block}_services`);
-//   const prefix = `/${block}`;
-
-//    const itemsCollection = itemsDB.collection("items");
-//   const servicesCollection = servicesDB.collection("services");
-//   const recordsCollection = itemsDB.collection("records");
-
-//   // Generate JWT token
-//   app.post("/jwt", (req, res) => {
-//     const user = req.body;
-//     const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-//       expiresIn: "1h",
-//     });
-//     res
-//       .cookie("token", token, {
-//         httpOnly: true,
-//         secure: false,
-//         path:"/",
-//       })
-//       .send({ success: true });
-//   });
-
-//   // Clear JWT cookie
-//   app.post("/logout", (req, res) => {
-//     res
-//       .clearCookie("token", {
-//         httpOnly: true,
-//         secure: false,
-//         path: "/",
-//       })
-//       .send({ success: true });
-//   });
-
-//   // 🔒 GET all items (protected)
-//   // app.get(`${prefix}/items`, verifyToken, async (req, res) => {
-//   //   const result = await itemsCollection.find().toArray();
-//   //   res.send(result);
-//   // });
-
-//   app.get(`${prefix}/items`, verifyToken, async (req, res) => {
-//     try {
-//       const items = await itemsCollection.find({}).toArray();
-//       res.send(items);
-//     } catch (error) {
-//       console.error(`Error in ${prefix}/items/all:`, error);
-//       res.status(500).send({ error: "Failed to fetch all items" });
-//     }
-//   });
-
-//   // 🔒 GET item by ID (protected)
-//   app.get(`${prefix}/items/:id`, verifyToken, async (req, res) => {
-//     const result = await itemsCollection.findOne({
-//       _id: new ObjectId(req.params.id),
-//     });
-//     res.send(result);
-//   });
-
-//   // 🔒 GET item by model (protected)
-//   app.get(`${prefix}/items/model/:model`, verifyToken, async (req, res) => {
-//     const result = await itemsCollection.findOne({ model: req.params.model });
-//     res.send(result);
-//   });
-
-//   // 🔒 Create a new item (POST)
-//   app.post(`${prefix}/item`, verifyToken, async (req, res) => {
-//     const newItem = req.body;
-//     const existing = await itemsCollection.findOne({ model: newItem.model });
-
-//     if (existing) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "Model already exists." });
-//     }
-
-//     const result = await itemsCollection.insertOne(newItem);
-
-//     // ✅ Auto-notify Admin
-//     const notificationsCollection = dbMap["main"].collection("notifications");
-//     await notificationsCollection.insertOne({
-//       type: "item_added",
-//       message: `Admin/Coordinator ${req.user.email} added "${
-//         newItem.itemName
-//       }" (${newItem.model}) in ${block.toUpperCase()} block.`,
-//       timestamp: new Date(),
-//       seen: false,
-//       block,
-//     });
-
-//     res.json({ success: true, insertedId: result.insertedId });
-//   });
-
-//   // 🔒 Update item (PATCH)
-//   app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
-//     const result = await itemsCollection.updateOne(
-//       { _id: new ObjectId(req.params.id) },
-//       { $set: req.body }
-//     );
-
-//     // ✅ Auto-notify Admin after update
-//     const updatedItem = req.body;
-//     const notificationsCollection = dbMap["main"].collection("notifications");
-//     await notificationsCollection.insertOne({
-//       type: "item_updated",
-//       message: `Admin/Coordinator ${req.user.email} updated "${
-//         updatedItem.itemName
-//       }" (${updatedItem.model}) in ${block.toUpperCase()} block.`,
-//       timestamp: new Date(),
-//       seen: false,
-//       block,
-//     });
-
-//     res.send(result);
-//   });
-
-//   // 🔒 Delete item (DELETE)
-//   app.delete(`${prefix}/item/:itemId`, verifyToken, async (req, res) => {
-//     const result = await itemsCollection.deleteOne({
-//       _id: new ObjectId(req.params.itemId),
-//     });
-//     res.send(result);
-//   });
-
-//   // 🔒 GET records
-//   app.get(`${prefix}/records`, verifyToken, async (req, res) => {
-//     const result = await recordsCollection.find().toArray();
-//     res.send(result);
-//   });
-
-//   // 🔒 Create a new record
-//   app.post(`${prefix}/records`, verifyToken, async (req, res) => {
-//     try {
-//       const {
-//         itemName,
-//         model,
-//         category,
-//         date,
-//         status,
-//         itemId,
-//         items_quantity = {},
-//         purpose,
-//         locationGood,
-//       } = req.body;
-
-//       const item = await itemsCollection.findOne({ _id: new ObjectId(itemId) });
-//       if (!item) return res.status(404).send({ message: "Item not found" });
-
-//       const {
-//         item_store = 0,
-//         item_use = 0,
-//         item_faulty_store = 0,
-//         item_faulty_use = 0,
-//         item_transfer = 0, // ✅ Support transfer
-//       } = items_quantity;
-
-//       const quantities = [
-//         item_store,
-//         item_use,
-//         item_faulty_store,
-//         item_faulty_use,
-//         item_transfer,
-//       ];
-
-//       const hasInvalidQty = quantities.some(
-//         (qty) => Number(qty) < 0 || isNaN(Number(qty))
-//       );
-
-//       const hasZeroQty = quantities.every((qty) => Number(qty) === 0);
-
-//       if (hasInvalidQty) {
-//         return res.status(400).json({ error: "Invalid quantity value" });
-//       }
-
-//       if (hasZeroQty) {
-//         return res
-//           .status(400)
-//           .json({ error: "At least one quantity must be greater than 0" });
-//       }
-
-//       const newRecord = {
-//         itemName,
-//         model,
-//         category,
-//         date,
-//         status,
-//         itemId: item._id,
-//         items_quantity: {
-//           item_store: parseInt(item_store) || 0,
-//           item_use: parseInt(item_use) || 0,
-//           item_faulty_store: parseInt(item_faulty_store) || 0,
-//           item_faulty_use: parseInt(item_faulty_use) || 0,
-//           item_transfer: parseInt(item_transfer) || 0, // ✅ New field
-//         },
-//         purpose,
-//         locationGood,
-//       };
-
-//       const result = await recordsCollection.insertOne(newRecord);
-//       res.status(200).send(result);
-//     } catch (err) {
-//       console.error("Error creating record:", err);
-//       res.status(500).send({ message: "Failed to create record" });
-//     }
-//   });
-
-//   // 🔒 Delete record
-//   app.delete(`${prefix}/records/:id`, verifyToken, async (req, res) => {
-//     const result = await recordsCollection.deleteOne({
-//       _id: new ObjectId(req.params.id),
-//     });
-//     res.send(result);
-//   });
-
-//   // 🔒 Approve record (and update item quantities)
-//   // 🔒 Approve record (and update item quantities)
-//   app.patch(`${prefix}/records/approve/:id`, verifyToken, async (req, res) => {
-//     try {
-//       const id = req.params.id;
-//       const record = await recordsCollection.findOne({ _id: new ObjectId(id) });
-//       if (!record) return res.status(404).send({ message: "Record not found" });
-
-//       const item = await itemsCollection.findOne({
-//         _id: new ObjectId(record.itemId),
-//       });
-//       if (!item) return res.status(404).send({ message: "Item not found" });
-
-//       let {
-//         item_store = 0,
-//         item_use = 0,
-//         item_faulty_store = 0,
-//         item_faulty_use = 0,
-//         item_transfer = 0, // ✅ Support transfer in item
-//       } = item.items_quantity || {};
-
-//       let totalQuantity = parseInt(item.totalQuantity || 0);
-
-//       const rq = record.items_quantity || {};
-//       const storeQty = parseInt(rq.item_store || 0);
-//       const useQty = parseInt(rq.item_use || 0);
-//       const faultyStoreQty = parseInt(rq.item_faulty_store || 0);
-//       const faultyUseQty = parseInt(rq.item_faulty_use || 0);
-//       const transferQty = parseInt(rq.item_transfer || 0); // ✅ Read transfer qty
-
-//       const rawStatus = (record.status || "").trim().toLowerCase();
-
-//       if (rawStatus === "pending(add)") {
-//         item_store += storeQty;
-//         totalQuantity += storeQty;
-//       } else if (rawStatus === "pending(remove)") {
-//         item_store -= useQty;
-//         item_use += useQty;
-//       } else if (rawStatus === "pending(remove_fault_store)") {
-//         item_store -= faultyStoreQty;
-//         item_faulty_store += faultyStoreQty;
-//       } else if (rawStatus === "pending(remove_fault_use)") {
-//         item_use -= faultyUseQty;
-//         item_faulty_use += faultyUseQty;
-//       } else if (rawStatus === "pending(transfer)") {
-//         item_store -= transferQty;
-//         item_transfer += transferQty;
-//       }
-
-//       await itemsCollection.updateOne(
-//         { _id: item._id },
-//         {
-//           $set: {
-//             "items_quantity.item_store": Math.max(0, item_store),
-//             "items_quantity.item_use": Math.max(0, item_use),
-//             "items_quantity.item_faulty_store": Math.max(0, item_faulty_store),
-//             "items_quantity.item_faulty_use": Math.max(0, item_faulty_use),
-//             "items_quantity.item_transfer": Math.max(0, item_transfer), // ✅ Add update
-//             totalQuantity,
-//           },
-//         }
-//       );
-
-//       const updateResult = await recordsCollection.updateOne(
-//         { _id: new ObjectId(id) },
-//         { $set: { status: "approved" } }
-//       );
-
-//       res.send({ message: "Approved", updateResult });
-//     } catch (error) {
-//       console.error("Approval error:", error);
-//       res.status(500).send({ message: "Failed to approve record" });
-//     }
-//   });
-//   app.post(`${prefix}/service`, verifyToken, async (req, res) => {
-//     const newService = req.body;
-
-//     try {
-//       const existing = await servicesCollection.findOne({
-//         serviceName: newService.serviceName,
-//       });
-
-//       if (existing) {
-//         return res.status(400).json({
-//           success: false,
-//           message: "Service with this name already exists.",
-//         });
-//       }
-
-//       const result = await servicesCollection.insertOne(newService);
-//       const notificationsCollection = dbMap["main"].collection("notifications");
-//       await notificationsCollection.insertOne({
-//         type: "service_added",
-//         message: `Admin/Coordinator ${req.user.email} added new service "${
-//           newService.serviceName
-//         }" in ${block.toUpperCase()} block.`,
-//         timestamp: new Date(),
-//         seen: false,
-//         block,
-//       });
-
-//       res.json({ success: true, insertedId: result.insertedId });
-//     } catch (error) {
-//       res
-//         .status(500)
-//         .send({ success: false, message: "Failed to add service" });
-//     }
-//   });
-
-//   app.get(`${prefix}/services`, verifyToken, async (req, res) => {
-//     try {
-//       const services = await servicesCollection.find({}).toArray();
-//       res.send(services);
-//     } catch (error) {
-//       res.status(500).send({ error: "Failed to fetch services" });
-//     }
-//   });
-// }
-
-// // Centralized users routes (only in ims-main)
-// function createUserRoutes() {
-//   const db = getDB("main"); // ims-main database
-//   const usersCollection = db.collection("users");
-
-//   // 🔐 GET all users
-//   app.get("/users", verifyToken, async (req, res) => {
-//     const result = await usersCollection.find().toArray();
-//     res.send(result);
-//   });
-
-//   // 🔐 Create a user (recommended protected, or use public with caution)
-//   app.post("/user", verifyToken, async (req, res) => {
-//     const result = await usersCollection.insertOne(req.body);
-//     res.send(result);
-//   });
-
-//   // 🔐 Get user by email
-//   app.get("/user/:email", verifyToken, async (req, res) => {
-//     const result = await usersCollection.findOne({ email: req.params.email });
-//     if (!result) return res.status(404).send({ message: "User not found" });
-//     res.send(result);
-//   });
-
-//   // 🔐 Update user status
-//   app.patch("/users/status/:id", verifyToken, async (req, res) => {
-//     const result = await usersCollection.updateOne(
-//       { _id: new ObjectId(req.params.id) },
-//       { $set: { status: req.body.status } }
-//     );
-//     res.send(result);
-//   });
-
-//   // 🔐 Update access block
-//   app.patch("/users/accessBlock/:id", verifyToken, async (req, res) => {
-//     const result = await usersCollection.updateOne(
-//       { _id: new ObjectId(req.params.id) },
-//       { $set: { accessBlock: req.body.accessBlock } }
-//     );
-//     res.send(result);
-//   });
-
-//   // 🔐 Delete user
-//   app.delete("/users/:id", verifyToken, async (req, res) => {
-//     const result = await usersCollection.deleteOne({
-//       _id: new ObjectId(req.params.id),
-//     });
-//     res.send(result);
-//   });
-// }
-
-// // 🔥 Notifications Routes (in ims-main DB)
-// function createNotificationRoutes() {
-//   const notificationsCollection = dbMap["main"].collection("notifications");
-
-//   // Get all notifications (can filter later by role if needed)
-
-//   app.get("/notifications/all", verifyToken, async (req, res) => {
-//     const { block } = req.query;
-
-//     if (!block) {
-//       return res.status(400).send({ message: "Block is required" });
-//     }
-
-//     try {
-//       const notifications = await notificationsCollection
-//         .find({ block })
-//         .sort({ timestamp: -1 })
-//         .toArray();
-
-//       res.send(notifications);
-//     } catch (err) {
-//       console.error("Failed to fetch all notifications:", err);
-//       res.status(500).send({ message: "Internal Server Error" });
-//     }
-//   });
-
-//   app.get("/notifications", verifyToken, async (req, res) => {
-//     const { block, skip = 0, limit = 5 } = req.query;
-//     const notifications = await notificationsCollection
-//       .find({ block })
-//       .sort({ timestamp: -1 })
-//       .skip(parseInt(skip))
-//       .limit(parseInt(limit))
-//       .toArray();
-
-//     res.send(notifications);
-//   });
-
-//   // Mark notification as seen
-//   app.patch("/notifications/mark/:id", verifyToken, async (req, res) => {
-//     const result = await notificationsCollection.updateOne(
-//       { _id: new ObjectId(req.params.id) },
-//       { $set: { seen: true } }
-//     );
-//     res.send(result);
-//   });
-
-//   app.patch("/notifications/mark-all", verifyToken, async (req, res) => {
-//     const { block } = req.query;
-//     const result = await notificationsCollection.updateMany(
-//       { block, seen: false },
-//       { $set: { seen: true } }
-//     );
-//     res.send(result);
-//   });
-
-//   // Delete notification
-//   app.delete("/notifications/:id", verifyToken, async (req, res) => {
-//     const result = await notificationsCollection.deleteOne({
-//       _id: new ObjectId(req.params.id),
-//     });
-//     res.send(result);
-//   });
-
-//   app.get("/notifications/count", verifyToken, async (req, res) => {
-//     const { block } = req.query;
-//     const count = await notificationsCollection.countDocuments({
-//       block,
-//       seen: false,
-//     });
-//     res.send({ count });
-//   });
-// }
-
-// // Start the server
-
-// connectDatabases().then(() => {
-//   createRoutesForBlock("head");
-//   createRoutesForBlock("local");
-//   createUserRoutes();
-//   createNotificationRoutes();
-
-//   app.get("/", (req, res) => res.send("✅ IMS backend running"));
-//   app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
-// });
-
 const express = require("express");
 require("dotenv").config();
 const cors = require("cors");
@@ -540,6 +5,18 @@ const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+
+function isValidObjectId(id) {
+  if (!ObjectId.isValid(id)) return false;
+
+  // Convert and check if the resulting id string matches the original
+  try {
+    const objectId = ObjectId.createFromHexString(id);
+    return objectId.toHexString() === id;
+  } catch {
+    return false;
+  }
+}
 
 const generateServicePDF = require("./utils/generateServicePDF");
 const generateItemPDF = require("./utils/generateItemPDF");
@@ -552,10 +29,15 @@ const port = process.env.PORT || 5000;
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "https://bbsms-7bec2.web.app", // Live site (Firebase Hosting)
+      "https://bbsms-7bec2.firebaseapp.com", // Firebase fallback domain
+      "http://localhost:5173", 
+    ],
     credentials: true,
   })
 );
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -576,43 +58,8 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-// MongoDB connection URI
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.al6vbwd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-});
-
-let dbMap = {};
-
-async function connectDatabases() {
-  await client.connect();
-  dbMap["head-items"] = client.db("sms-head-items");
-  dbMap["local-items"] = client.db("sms-local-items");
-  dbMap["head-services"] = client.db("sms-head-services");
-  dbMap["local-services"] = client.db("sms-local-services");
-  dbMap["main"] = client.db("sms-main");
-  console.log("✅ Connected to all SMS databases");
-}
-
-function getDB(block) {
-  return dbMap[block];
-}
-
-function createRoutesForBlock(block) {
-  const itemsDB = getDB(`${block}-items`);
-  const servicesDB = getDB(`${block}-services`);
-  const prefix = `/${block}`;
-
-  const itemsCollection = itemsDB.collection("items");
-  const servicesCollection = servicesDB.collection("services");
-  const recordsCollection = itemsDB.collection("records");
-
-  app.post("/generate-pdf", async (req, res) => {
+  app.post("/api/generate-pdf", async (req, res) => {
     try {
       const { data, type = "services", filename = "report" } = req.body;
 
@@ -647,16 +94,56 @@ function createRoutesForBlock(block) {
     }
   });
 
+// MongoDB connection URI
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.al6vbwd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+
+const client = new MongoClient(uri, {
+  serverApi: {
+    version: ServerApiVersion.v1,
+    strict: true,
+    deprecationErrors: true,
+  },
+});
+
+let dbMap = {};
+
+async function connectDatabases() {
+  //await client.connect();
+  dbMap["head-items"] = client.db("sms-head-items");
+  dbMap["local-items"] = client.db("sms-local-items");
+  dbMap["head-services"] = client.db("sms-head-services");
+  dbMap["local-services"] = client.db("sms-local-services");
+  dbMap["main"] = client.db("sms-main");
+  console.log("✅ Connected to all SMS databases");
+}
+
+function getDB(block) {
+  return dbMap[block];
+}
+
+function createRoutesForBlock(block) {
+  const itemsDB = getDB(`${block}-items`);
+  const servicesDB = getDB(`${block}-services`);
+  const prefix = `/${block}`;
+
+  const itemsCollection = itemsDB.collection("items");
+  const servicesCollection = servicesDB.collection("services");
+  const recordsCollection = itemsDB.collection("records");
+
+
+  
   // Generate JWT token
   app.post("/jwt", (req, res) => {
     const user = req.body;
     const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
       expiresIn: "2h",
     });
+
     res
       .cookie("token", token, {
         httpOnly: true,
-        secure: false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       })
       .send({ success: true });
   });
@@ -666,17 +153,12 @@ function createRoutesForBlock(block) {
     res
       .clearCookie("token", {
         httpOnly: true,
-        secure: false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
         path: "/",
       })
       .send({ success: true });
   });
-
-  // 🔒 GET all items (protected)
-  // app.get(`${prefix}/items`, verifyToken, async (req, res) => {
-  //   const result = await itemsCollection.find().toArray();
-  //   res.send(result);
-  // });
 
   app.get(`${prefix}/items`, verifyToken, async (req, res) => {
     try {
@@ -737,42 +219,41 @@ function createRoutesForBlock(block) {
   });
 
   // 🔒 Update item (PATCH)
-app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
-  const { id } = req.params;
+  app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
+    const { id } = req.params;
 
-  // ✅ Validate ObjectId format
-  if (!id || id.length !== 24) {
-    return res.status(400).json({ message: "Invalid ID format" });
-  }
+    // ✅ Validate ObjectId format
+    if (!id || id.length !== 24) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
 
-  try {
-    const _id = new ObjectId(id);
-    const result = await itemsCollection.updateOne(
-      { _id },
-      { $set: req.body }
-    );
+    try {
+      const _id = new ObjectId(id);
+      const result = await itemsCollection.updateOne(
+        { _id },
+        { $set: req.body }
+      );
 
-    // ✅ Notify Admin after successful update
-    const updatedItem = req.body;
-    const notificationsCollection = dbMap["main"].collection("notifications");
-    await notificationsCollection.insertOne({
-      type: "item_updated",
-      module: "items",
-      message: `Admin/Coordinator ${req.user.email} updated "${
-        updatedItem.itemName
-      }" (${updatedItem.model}) in ${block.toUpperCase()} block.`,
-      timestamp: new Date(),
-      seen: false,
-      block,
-    });
+      // ✅ Notify Admin after successful update
+      const updatedItem = req.body;
+      const notificationsCollection = dbMap["main"].collection("notifications");
+      await notificationsCollection.insertOne({
+        type: "item_updated",
+        module: "items",
+        message: `Admin/Coordinator ${req.user.email} updated "${
+          updatedItem.itemName
+        }" (${updatedItem.model}) in ${block.toUpperCase()} block.`,
+        timestamp: new Date(),
+        seen: false,
+        block,
+      });
 
-    res.send(result);
-  } catch (error) {
-    console.error("Update error:", error);
-    res.status(500).json({ message: "Something went wrong" });
-  }
-});
-
+      res.send(result);
+    } catch (error) {
+      console.error("Update error:", error);
+      res.status(500).json({ message: "Something went wrong" });
+    }
+  });
 
   // 🔒 Delete item (DELETE)
   app.delete(`${prefix}/item/:itemId`, verifyToken, async (req, res) => {
@@ -890,19 +371,6 @@ app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
     }
   });
 
-  // ✅ Update service by ID
-  // app.patch(`${prefix}/services/:id`, verifyToken, async (req, res) => {
-  //   try {
-  //     const result = await servicesCollection.updateOne(
-  //       { _id: new ObjectId(req.params.id) },
-  //       { $set: req.body }
-  //     );
-  //     res.send(result);
-  //   } catch (error) {
-  //     res.status(500).send({ message: "Failed to update service" });
-  //   }
-  // });
-
   // ✅ Delete service by ID (for your ManageServices.jsx)
   app.delete(`${prefix}/services/:id`, verifyToken, async (req, res) => {
     try {
@@ -936,15 +404,24 @@ app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
         locationGood,
       } = req.body;
 
-      const item = await itemsCollection.findOne({ _id: new ObjectId(itemId) });
-      if (!item) return res.status(404).send({ message: "Item not found" });
+      if (!isValidObjectId(itemId)) {
+        return res.status(400).json({ message: "Invalid Item ID format" });
+      }
+
+      const item = await itemsCollection.findOne({
+        _id: ObjectId.createFromHexString(itemId),
+      });
+
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
 
       const {
         item_store = 0,
         item_use = 0,
         item_faulty_store = 0,
         item_faulty_use = 0,
-        item_transfer = 0, // ✅ Support transfer
+        item_transfer = 0,
       } = items_quantity;
 
       const quantities = [
@@ -977,13 +454,13 @@ app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
         category,
         date,
         status,
-        itemId: item._id,
+        itemId: ObjectId.createFromHexString(itemId),
         items_quantity: {
           item_store: parseInt(item_store) || 0,
           item_use: parseInt(item_use) || 0,
           item_faulty_store: parseInt(item_faulty_store) || 0,
           item_faulty_use: parseInt(item_faulty_use) || 0,
-          item_transfer: parseInt(item_transfer) || 0, // ✅ New field
+          item_transfer: parseInt(item_transfer) || 0,
         },
         purpose,
         locationGood,
@@ -993,7 +470,7 @@ app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
       res.status(200).send(result);
     } catch (err) {
       console.error("Error creating record:", err);
-      res.status(500).send({ message: "Failed to create record" });
+      res.status(500).json({ message: "Failed to create record" });
     }
   });
 
@@ -1006,11 +483,19 @@ app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
   });
 
   // 🔒 Approve record (and update item quantities)
-  // 🔒 Approve record (and update item quantities)
+
   app.patch(`${prefix}/records/approve/:id`, verifyToken, async (req, res) => {
     try {
       const id = req.params.id;
-      const record = await recordsCollection.findOne({ _id: new ObjectId(id) });
+
+      // Validate ID format before using it
+      if (!id || !ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+      }
+
+      const _id = new ObjectId(id);
+
+      const record = await recordsCollection.findOne({ _id });
       if (!record) return res.status(404).send({ message: "Record not found" });
 
       const item = await itemsCollection.findOne({
@@ -1023,7 +508,7 @@ app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
         item_use = 0,
         item_faulty_store = 0,
         item_faulty_use = 0,
-        item_transfer = 0, // ✅ Support transfer in item
+        item_transfer = 0,
       } = item.items_quantity || {};
 
       let totalQuantity = parseInt(item.totalQuantity || 0);
@@ -1033,7 +518,7 @@ app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
       const useQty = parseInt(rq.item_use || 0);
       const faultyStoreQty = parseInt(rq.item_faulty_store || 0);
       const faultyUseQty = parseInt(rq.item_faulty_use || 0);
-      const transferQty = parseInt(rq.item_transfer || 0); // ✅ Read transfer qty
+      const transferQty = parseInt(rq.item_transfer || 0);
 
       const rawStatus = (record.status || "").trim().toLowerCase();
 
@@ -1062,14 +547,14 @@ app.patch(`${prefix}/items/:id`, verifyToken, async (req, res) => {
             "items_quantity.item_use": Math.max(0, item_use),
             "items_quantity.item_faulty_store": Math.max(0, item_faulty_store),
             "items_quantity.item_faulty_use": Math.max(0, item_faulty_use),
-            "items_quantity.item_transfer": Math.max(0, item_transfer), // ✅ Add update
+            "items_quantity.item_transfer": Math.max(0, item_transfer),
             totalQuantity,
           },
         }
       );
 
       const updateResult = await recordsCollection.updateOne(
-        { _id: new ObjectId(id) },
+        { _id },
         { $set: { status: "approved" } }
       );
 
@@ -1243,6 +728,6 @@ connectDatabases().then(() => {
   createUserRoutes();
   createNotificationRoutes();
 
-  app.get("/", (req, res) => res.send("✅ IMS backend running"));
+  app.get("/", (req, res) => res.send("✅ SMS is running owaoo"));
   app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
 });
