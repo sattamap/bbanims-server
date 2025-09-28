@@ -1,2 +1,14 @@
 chromium-browser
-fonts-noto
+fonts-liberation
+libnss3
+libxss1
+libasound2
+libatk-bridge2.0-0
+libgtk-3-0
+libx11-xcb1
+libxcb1
+libxcomposite1
+libxdamage1
+libxrandr2
+libgbm1
+libpango1.0-0
