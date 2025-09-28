@@ -160,25 +160,7 @@ module.exports = generateItemPDF;
 
 const isProd = process.env.NODE_ENV === "production";
 const puppeteer = isProd ? require("puppeteer-core") : require("puppeteer");
-const fs = require("fs");
-
-const getExecutablePath = () => {
-  if (!isProd) return undefined; // Local: bundled Chromium
-
-  if (process.env.CHROMIUM_PATH) {
-    return process.env.CHROMIUM_PATH;
-  }
-
-  const candidates = ["/usr/bin/chromium-browser", "/usr/bin/chromium"];
-  for (const p of candidates) {
-    if (fs.existsSync(p)) {
-      return p;
-    }
-  }
-
-  console.error("❌ Chromium not found in expected paths");
-  return null;
-};
+const chromium = isProd ? require("@sparticuz/chromium") : null;
 
 // Convert English digits → Bangla digits
 const enToBnDigits = (input) => {
@@ -271,18 +253,13 @@ const generateItemPDF = async (items) => {
   );
 
   console.log("NODE_ENV:", process.env.NODE_ENV);
-  console.log("Using Chromium path:", getExecutablePath());
 
+  // Puppeteer launch
   const browser = await puppeteer.launch({
-    executablePath: getExecutablePath(),
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-gpu",
-      "--disable-dev-shm-usage",
-      "--disable-software-rasterizer",
-    ],
-    headless: "new",
+    args: chromium ? chromium.args : [],
+    defaultViewport: chromium ? chromium.defaultViewport : null,
+    executablePath: isProd ? await chromium.executablePath() : undefined,
+    headless: chromium ? chromium.headless : true,
   });
 
   const page = await browser.newPage();
@@ -299,3 +276,4 @@ const generateItemPDF = async (items) => {
 };
 
 module.exports = generateItemPDF;
+
