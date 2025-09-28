@@ -162,20 +162,28 @@ const isProd = process.env.NODE_ENV === "production";
 const puppeteer = isProd ? require("puppeteer-core") : require("puppeteer");
 
 const getExecutablePath = () => {
-  if (!isProd) return undefined; // local: let puppeteer use bundled Chromium
+  if (!isProd) return undefined; // Local: bundled Chromium
 
-  // Render/Ubuntu: chromium may be at chromium-browser or chromium
-  return "/usr/bin/chromium-browser";
+  // Render: allow overriding via env, fallback to common paths
+  return (
+    process.env.CHROMIUM_PATH ||
+    "/usr/bin/chromium-browser" ||
+    "/usr/bin/chromium"
+  );
 };
 
 // Convert English digits → Bangla digits
 const enToBnDigits = (input) => {
-  const enDigits = ["0","1","2","3","4","5","6","7","8","9"];
-  const bnDigits = ["০","১","২","৩","৪","৫","৬","৭","৮","৯"];
-  return input?.toString().split("").map(c => {
-    const idx = enDigits.indexOf(c);
-    return idx !== -1 ? bnDigits[idx] : c;
-  }).join("");
+  const enDigits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+  const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  return input
+    ?.toString()
+    .split("")
+    .map((c) => {
+      const idx = enDigits.indexOf(c);
+      return idx !== -1 ? bnDigits[idx] : c;
+    })
+    .join("");
 };
 
 // HTML template
@@ -225,7 +233,9 @@ const htmlTemplate = `
 const generateItemPDF = async (items) => {
   let html = htmlTemplate;
 
-  const tableRows = items.map((item, index) => `
+  const tableRows = items
+    .map(
+      (item, index) => `
     <tr>
       <td>${enToBnDigits(index + 1)}</td>
       <td>
@@ -243,15 +253,29 @@ const generateItemPDF = async (items) => {
       <td>${item.category || "-"}</td>
       <td>${item.date ? enToBnDigits(item.date) : "-"}</td>
     </tr>
-  `).join("");
+  `
+    )
+    .join("");
 
-  html = html.replace('<tbody id="table-body"></tbody>', `<tbody id="table-body">${tableRows}</tbody>`);
+  html = html.replace(
+    '<tbody id="table-body"></tbody>',
+    `<tbody id="table-body">${tableRows}</tbody>`
+  );
+
+  console.log("NODE_ENV:", process.env.NODE_ENV);
+  console.log("Using Chromium path:", getExecutablePath());
 
   // Puppeteer launch
   const browser = await puppeteer.launch({
     executablePath: getExecutablePath(),
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-gpu",
+      "--disable-dev-shm-usage",
+      "--disable-software-rasterizer",
+    ],
+    headless: "new",
   });
 
   const page = await browser.newPage();
