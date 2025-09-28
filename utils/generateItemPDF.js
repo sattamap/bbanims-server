@@ -160,16 +160,24 @@ module.exports = generateItemPDF;
 
 const isProd = process.env.NODE_ENV === "production";
 const puppeteer = isProd ? require("puppeteer-core") : require("puppeteer");
+const fs = require("fs");
 
 const getExecutablePath = () => {
   if (!isProd) return undefined; // Local: bundled Chromium
 
-  // Render: allow overriding via env, fallback to common paths
-  return (
-    process.env.CHROMIUM_PATH ||
-    "/usr/bin/chromium-browser" ||
-    "/usr/bin/chromium"
-  );
+  if (process.env.CHROMIUM_PATH) {
+    return process.env.CHROMIUM_PATH;
+  }
+
+  const candidates = ["/usr/bin/chromium-browser", "/usr/bin/chromium"];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      return p;
+    }
+  }
+
+  console.error("❌ Chromium not found in expected paths");
+  return null;
 };
 
 // Convert English digits → Bangla digits
@@ -265,7 +273,6 @@ const generateItemPDF = async (items) => {
   console.log("NODE_ENV:", process.env.NODE_ENV);
   console.log("Using Chromium path:", getExecutablePath());
 
-  // Puppeteer launch
   const browser = await puppeteer.launch({
     executablePath: getExecutablePath(),
     args: [
