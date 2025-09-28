@@ -40,7 +40,9 @@ module.exports = generateServicePDF;
  */
 
 
-const puppeteer = require("puppeteer");
+
+const isProd = process.env.NODE_ENV === "production";
+const puppeteer = isProd ? require("puppeteer-core") : require("puppeteer");
 
 const generateNotificationPDF = async (notifications) => {
   // Inline HTML template
@@ -51,20 +53,15 @@ const generateNotificationPDF = async (notifications) => {
     <meta charset="UTF-8" />
     <title>Notification Report</title>
     <style>
-      @page {
-        margin: 40px 30px; /* Ensures proper margin between pages */
-      }
+      @page { margin: 40px 30px; }
 
       body {
         font-family: Arial, sans-serif;
         font-size: 12px;
-        padding: 0; /* Use @page margin instead of body padding */
+        padding: 0;
       }
 
-      h1 {
-        text-align: center;
-        margin: 20px 0;
-      }
+      h1 { text-align: center; margin: 20px 0; }
 
       table {
         width: 100%;
@@ -72,20 +69,10 @@ const generateNotificationPDF = async (notifications) => {
         page-break-inside: auto;
       }
 
-      th, td {
-        border: 1px solid #333;
-        padding: 6px;
-        text-align: left;
-      }
+      th, td { border: 1px solid #333; padding: 6px; text-align: left; }
+      th { background-color: #eee; }
 
-      th {
-        background-color: #eee;
-      }
-
-      tr {
-        page-break-inside: avoid;
-        page-break-after: auto;
-      }
+      tr { page-break-inside: avoid; page-break-after: auto; }
     </style>
   </head>
   <body>
@@ -118,22 +105,21 @@ const generateNotificationPDF = async (notifications) => {
     )
     .join("");
 
-  // Inject rows into template
   html = html.replace(
     '<tbody id="table-body"></tbody>',
     `<tbody id="table-body">${tableRows}</tbody>`
   );
 
-  // Puppeteer launch (serverless safe)
+  // Launch Puppeteer
   const browser = await puppeteer.launch({
+    executablePath: isProd ? "/usr/bin/chromium-browser" : undefined,
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    headless: "new",
+    headless: true,
   });
 
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "networkidle0" });
 
-  // Generate PDF
   const pdfBuffer = await page.pdf({
     format: "A4",
     printBackground: true,
@@ -145,3 +131,4 @@ const generateNotificationPDF = async (notifications) => {
 };
 
 module.exports = generateNotificationPDF;
+

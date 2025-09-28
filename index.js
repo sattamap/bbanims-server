@@ -728,6 +728,6 @@ connectDatabases().then(() => {
   createUserRoutes();
   createNotificationRoutes();
 
-  app.get("/", (req, res) => res.send("✅ SMS is running owaoo"));
+  app.get("/", (req, res) => res.send("✅ SMS is running ok"));
   app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
 });
