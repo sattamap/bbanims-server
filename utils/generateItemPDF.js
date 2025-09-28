@@ -161,6 +161,13 @@ module.exports = generateItemPDF;
 const isProd = process.env.NODE_ENV === "production";
 const puppeteer = isProd ? require("puppeteer-core") : require("puppeteer");
 
+const getExecutablePath = () => {
+  if (!isProd) return undefined; // local: let puppeteer use bundled Chromium
+
+  // Render/Ubuntu: chromium may be at chromium-browser or chromium
+  return "/usr/bin/chromium-browser";
+};
+
 // Convert English digits → Bangla digits
 const enToBnDigits = (input) => {
   const enDigits = ["0","1","2","3","4","5","6","7","8","9"];
@@ -242,7 +249,7 @@ const generateItemPDF = async (items) => {
 
   // Puppeteer launch
   const browser = await puppeteer.launch({
-    executablePath: isProd ? "/usr/bin/chromium-browser" : undefined,
+    executablePath: getExecutablePath(),
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
     headless: true,
   });
