@@ -41,8 +41,30 @@ module.exports = generateServicePDF;
 
 
 
+const fs = require("fs");
+const path = require("path");
+
 const isProd = process.env.NODE_ENV === "production";
 const puppeteer = isProd ? require("puppeteer-core") : require("puppeteer");
+const chromium = isProd ? require("@sparticuz/chromium") : null;
+
+// Load Bangla font as base64
+const fontPath = path.join(__dirname, "../fonts/TiroBangla-Regular.ttf");
+const banglaFontBase64 = fs.readFileSync(fontPath).toString("base64");
+
+// Convert English digits → Bangla digits
+const enToBnDigits = (input) => {
+  const enDigits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+  const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  return input
+    ?.toString()
+    .split("")
+    .map((c) => {
+      const idx = enDigits.indexOf(c);
+      return idx !== -1 ? bnDigits[idx] : c;
+    })
+    .join("");
+};
 
 const generateNotificationPDF = async (notifications) => {
   // Inline HTML template
@@ -51,12 +73,19 @@ const generateNotificationPDF = async (notifications) => {
   <html lang="bn">
   <head>
     <meta charset="UTF-8" />
-    <title>Notification Report</title>
+    <title>নোটিফিকেশন রিপোর্ট</title>
     <style>
+      @font-face {
+        font-family: "TiroBangla";
+        src: url(data:font/ttf;base64,${banglaFontBase64}) format("truetype");
+        font-weight: normal;
+        font-style: normal;
+      }
+
       @page { margin: 40px 30px; }
 
       body {
-        font-family: Arial, sans-serif;
+        font-family: "TiroBangla", sans-serif;
         font-size: 12px;
         padding: 0;
       }
@@ -76,14 +105,14 @@ const generateNotificationPDF = async (notifications) => {
     </style>
   </head>
   <body>
-    <h1>Notification Report</h1>
+    <h1>নোটিফিকেশন রিপোর্ট</h1>
     <table>
       <thead>
         <tr>
           <th>#</th>
-          <th>Message</th>
-          <th>Type</th>
-          <th>Date</th>
+          <th>বার্তা</th>
+          <th>ধরন</th>
+          <th>তারিখ</th>
         </tr>
       </thead>
       <tbody id="table-body"></tbody>
@@ -97,10 +126,14 @@ const generateNotificationPDF = async (notifications) => {
     .map(
       (n, i) => `
         <tr>
-          <td>${i + 1}</td>
+          <td>${enToBnDigits(i + 1)}</td>
           <td>${n.message}</td>
           <td>${n.type}</td>
-          <td>${new Date(n.timestamp).toLocaleString("bn-BD")}</td>
+          <td>${
+            n.timestamp
+              ? enToBnDigits(new Date(n.timestamp).toLocaleString("bn-BD"))
+              : "-"
+          }</td>
         </tr>`
     )
     .join("");
@@ -112,9 +145,10 @@ const generateNotificationPDF = async (notifications) => {
 
   // Launch Puppeteer
   const browser = await puppeteer.launch({
-    executablePath: isProd ? "/usr/bin/chromium-browser" : undefined,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    headless: true,
+    args: chromium ? chromium.args : ["--no-sandbox", "--disable-setuid-sandbox"],
+    defaultViewport: chromium ? chromium.defaultViewport : null,
+    executablePath: isProd ? await chromium.executablePath() : undefined,
+    headless: chromium ? chromium.headless : true,
   });
 
   const page = await browser.newPage();
@@ -131,4 +165,3 @@ const generateNotificationPDF = async (notifications) => {
 };
 
 module.exports = generateNotificationPDF;
-

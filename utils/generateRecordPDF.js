@@ -200,8 +200,16 @@ module.exports = generateRecordPDF;
 
 
 
+const fs = require("fs");
+const path = require("path");
+
 const isProd = process.env.NODE_ENV === "production";
 const puppeteer = isProd ? require("puppeteer-core") : require("puppeteer");
+const chromium = isProd ? require("@sparticuz/chromium") : null;
+
+// Load Bangla font as base64
+const fontPath = path.join(__dirname, "../fonts/TiroBangla-Regular.ttf");
+const banglaFontBase64 = fs.readFileSync(fontPath).toString("base64");
 
 // Convert English digits → Bangla digits
 const enToBnDigits = (input) => {
@@ -219,9 +227,21 @@ const generateRecordPDF = async (records) => {
   <html lang="bn">
   <head>
     <meta charset="UTF-8" />
-    <title>Records Report</title>
+    <title>রেকর্ড রিপোর্ট</title>
     <style>
-      body { font-family: Arial, sans-serif; font-size: 11px; padding: 20px; }
+      @font-face {
+        font-family: "TiroBangla";
+        src: url(data:font/ttf;base64,${banglaFontBase64}) format("truetype");
+        font-weight: normal;
+        font-style: normal;
+      }
+
+      @page {
+        size: A4 landscape;
+        margin: 30px 20px;
+      }
+
+      body { font-family: "TiroBangla", sans-serif; font-size: 11px; padding: 20px; }
       h1 { text-align: center; margin-bottom: 20px; }
       table { width: 100%; border-collapse: collapse; table-layout: fixed; }
       th, td { border: 1px solid #333; padding: 4px; text-align: left; word-wrap: break-word; }
@@ -235,7 +255,7 @@ const generateRecordPDF = async (records) => {
       <thead>
         <tr>
           <th>#</th>
-          <th>নাম, মডেল & উৎপত্তি</th>
+          <th>নাম, মডেল & ক্যাটাগরি</th>
           <th>পণ্য (স্টোর)</th>
           <th>পণ্য (ব্যবহার)</th>
           <th>পণ্য (স্টোরে নষ্ট)</th>
@@ -268,7 +288,7 @@ const generateRecordPDF = async (records) => {
       <td>${enToBnDigits(item?.items_quantity?.item_transfer ?? 0)}</td>
       <td>${item.locationGood || "-"}</td>
       <td>${item.purpose || "-"}</td>
-      <td>${item.date || "-"}</td>
+      <td>${item.date ? enToBnDigits(item.date) : "-"}</td>
       <td>${item.status || "-"}</td>
     </tr>
   `).join("");
@@ -277,9 +297,10 @@ const generateRecordPDF = async (records) => {
 
   // Puppeteer launch
   const browser = await puppeteer.launch({
-    executablePath: isProd ? "/usr/bin/chromium-browser" : undefined,
-    args: ["--no-sandbox","--disable-setuid-sandbox"],
-    headless: true,
+    args: chromium ? chromium.args : ["--no-sandbox", "--disable-setuid-sandbox"],
+    defaultViewport: chromium ? chromium.defaultViewport : null,
+    executablePath: isProd ? await chromium.executablePath() : undefined,
+    headless: chromium ? chromium.headless : true,
   });
 
   const page = await browser.newPage();

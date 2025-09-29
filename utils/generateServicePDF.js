@@ -160,8 +160,30 @@ module.exports = generateServicePDF;
  */
 
 
+const fs = require("fs");
+const path = require("path");
+
 const isProd = process.env.NODE_ENV === "production";
 const puppeteer = isProd ? require("puppeteer-core") : require("puppeteer");
+const chromium = isProd ? require("@sparticuz/chromium") : null;
+
+// Load Bangla font as base64
+const fontPath = path.join(__dirname, "../fonts/TiroBangla-Regular.ttf");
+const banglaFontBase64 = fs.readFileSync(fontPath).toString("base64");
+
+// Convert English digits → Bangla digits
+const enToBnDigits = (input) => {
+  const enDigits = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+  const bnDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  return input
+    ?.toString()
+    .split("")
+    .map((c) => {
+      const idx = enDigits.indexOf(c);
+      return idx !== -1 ? bnDigits[idx] : c;
+    })
+    .join("");
+};
 
 const generateServicePDF = async (services) => {
   // HTML template
@@ -174,7 +196,9 @@ const generateServicePDF = async (services) => {
     <style>
       @font-face {
         font-family: "TiroBangla";
-        src: url("https://fonts.gstatic.com/s/tirobangla/v15/_Xmr-H4Yj9kaolrK_p0G1-BzS-0.woff2") format("woff2");
+        src: url(data:font/ttf;base64,${banglaFontBase64}) format("truetype");
+        font-weight: normal;
+        font-style: normal;
       }
 
       @page { margin: 40px 30px; }
@@ -224,24 +248,28 @@ const generateServicePDF = async (services) => {
     .map(
       (s, i) => `
         <tr>
-          <td>${i + 1}</td>
+          <td>${enToBnDigits(i + 1)}</td>
           <td>${s.serviceName}</td>
           <td>${s.detail}</td>
-          <td>${s.start_date}</td>
-          <td>${s.end_date}</td>
-          <td>${s.category}</td>
-          <td>${s.provider}</td>
+          <td>${s.start_date ? enToBnDigits(s.start_date) : "-"}</td>
+          <td>${s.end_date ? enToBnDigits(s.end_date) : "-"}</td>
+          <td>${s.category || "-"}</td>
+          <td>${s.provider || "-"}</td>
         </tr>`
     )
     .join("");
 
-  html = html.replace('<tbody id="table-body"></tbody>', `<tbody id="table-body">${tableRows}</tbody>`);
+  html = html.replace(
+    '<tbody id="table-body"></tbody>',
+    `<tbody id="table-body">${tableRows}</tbody>`
+  );
 
   // Launch Puppeteer
   const browser = await puppeteer.launch({
-    executablePath: isProd ? "/usr/bin/chromium-browser" : undefined,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    headless: true,
+    args: chromium ? chromium.args : ["--no-sandbox", "--disable-setuid-sandbox"],
+    defaultViewport: chromium ? chromium.defaultViewport : null,
+    executablePath: isProd ? await chromium.executablePath() : undefined,
+    headless: chromium ? chromium.headless : true,
   });
 
   const page = await browser.newPage();
@@ -258,4 +286,3 @@ const generateServicePDF = async (services) => {
 };
 
 module.exports = generateServicePDF;
-
