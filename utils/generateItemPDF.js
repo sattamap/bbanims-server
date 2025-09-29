@@ -188,7 +188,7 @@ const htmlTemplate = `
       size: A4 landscape;
       margin: 30px 20px;
     }
-    body { font-family: Arial, sans-serif; font-size: 11px; padding: 20px; }
+    body { font-family: TiroBangla; font-size: 11px; padding: 20px; }
     h1 { text-align: center; margin-bottom: 20px; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     th, td { border: 1px solid #333; padding: 4px; text-align: left; word-wrap: break-word; }
