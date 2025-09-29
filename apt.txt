@@ -1,5 +1,6 @@
 chromium-browser
 fonts-liberation
+fonts-beng
 libnss3
 libxss1
 libasound2
