@@ -157,10 +157,16 @@ const generateItemPDF = async (items) => {
 module.exports = generateItemPDF;
  */
 
+const fs = require("fs");
+const path = require("path");
 
 const isProd = process.env.NODE_ENV === "production";
 const puppeteer = isProd ? require("puppeteer-core") : require("puppeteer");
 const chromium = isProd ? require("@sparticuz/chromium") : null;
+
+// Load font as base64
+const fontPath = path.join(__dirname, "../fonts/TiroBangla-Regular.ttf");
+const banglaFontBase64 = fs.readFileSync(fontPath).toString("base64");
 
 // Convert English digits → Bangla digits
 const enToBnDigits = (input) => {
@@ -177,18 +183,24 @@ const enToBnDigits = (input) => {
 };
 
 // HTML template
-const htmlTemplate = `
+const getHtmlTemplate = () => `
 <!DOCTYPE html>
 <html lang="bn">
 <head>
   <meta charset="UTF-8" />
   <title>Item Report</title>
   <style>
+    @font-face {
+      font-family: "TiroBangla";
+      src: url(data:font/ttf;base64,${banglaFontBase64}) format("truetype");
+      font-weight: normal;
+      font-style: normal;
+    }
     @page {
       size: A4 landscape;
       margin: 30px 20px;
     }
-    body { font-family: TiroBangla; font-size: 11px; padding: 20px; }
+    body { font-family: "TiroBangla", sans-serif; font-size: 11px; padding: 20px; }
     h1 { text-align: center; margin-bottom: 20px; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     th, td { border: 1px solid #333; padding: 4px; text-align: left; word-wrap: break-word; }
@@ -221,7 +233,7 @@ const htmlTemplate = `
 `;
 
 const generateItemPDF = async (items) => {
-  let html = htmlTemplate;
+  let html = getHtmlTemplate();
 
   const tableRows = items
     .map(
@@ -276,4 +288,3 @@ const generateItemPDF = async (items) => {
 };
 
 module.exports = generateItemPDF;
-
