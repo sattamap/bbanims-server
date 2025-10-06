@@ -43,6 +43,7 @@ module.exports = generateServicePDF;
 
 const fs = require("fs");
 const path = require("path");
+const { getBrowser } = require("./browser");
 
 const isProd = process.env.NODE_ENV === "production";
 const puppeteer = isProd ? require("puppeteer-core") : require("puppeteer");
@@ -144,13 +145,8 @@ const generateNotificationPDF = async (notifications) => {
   );
 
   // Launch Puppeteer
-  const browser = await puppeteer.launch({
-    args: chromium ? chromium.args : ["--no-sandbox", "--disable-setuid-sandbox"],
-    defaultViewport: chromium ? chromium.defaultViewport : null,
-    executablePath: isProd ? await chromium.executablePath() : undefined,
-    headless: chromium ? chromium.headless : true,
-  });
 
+  const browser = await getBrowser();
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "networkidle0" });
 

@@ -202,6 +202,7 @@ module.exports = generateRecordPDF;
 
 const fs = require("fs");
 const path = require("path");
+const { getBrowser } = require("./browser");
 
 const isProd = process.env.NODE_ENV === "production";
 const puppeteer = isProd ? require("puppeteer-core") : require("puppeteer");
@@ -296,13 +297,8 @@ const generateRecordPDF = async (records) => {
   html = html.replace('<tbody id="table-body"></tbody>', `<tbody id="table-body">${tableRows}</tbody>`);
 
   // Puppeteer launch
-  const browser = await puppeteer.launch({
-    args: chromium ? chromium.args : ["--no-sandbox", "--disable-setuid-sandbox"],
-    defaultViewport: chromium ? chromium.defaultViewport : null,
-    executablePath: isProd ? await chromium.executablePath() : undefined,
-    headless: chromium ? chromium.headless : true,
-  });
 
+  const browser = await getBrowser();
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "networkidle0" });
 

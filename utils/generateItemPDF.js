@@ -157,6 +157,7 @@ const generateItemPDF = async (items) => {
 module.exports = generateItemPDF;
  */
 
+const { getBrowser } = require("./browser"); 
 const fs = require("fs");
 const path = require("path");
 
@@ -267,13 +268,8 @@ const generateItemPDF = async (items) => {
   console.log("NODE_ENV:", process.env.NODE_ENV);
 
   // Puppeteer launch
-  const browser = await puppeteer.launch({
-    args: chromium ? chromium.args : [],
-    defaultViewport: chromium ? chromium.defaultViewport : null,
-    executablePath: isProd ? await chromium.executablePath() : undefined,
-    headless: chromium ? chromium.headless : true,
-  });
-
+ 
+  const browser = await getBrowser();
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "networkidle0" });
 

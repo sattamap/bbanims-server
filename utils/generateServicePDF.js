@@ -159,7 +159,7 @@ const generateServicePDF = async (services) => {
 module.exports = generateServicePDF;
  */
 
-
+const { getBrowser } = require("./browser"); 
 const fs = require("fs");
 const path = require("path");
 
@@ -265,13 +265,8 @@ const generateServicePDF = async (services) => {
   );
 
   // Launch Puppeteer
-  const browser = await puppeteer.launch({
-    args: chromium ? chromium.args : ["--no-sandbox", "--disable-setuid-sandbox"],
-    defaultViewport: chromium ? chromium.defaultViewport : null,
-    executablePath: isProd ? await chromium.executablePath() : undefined,
-    headless: chromium ? chromium.headless : true,
-  });
 
+  const browser = await getBrowser();
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "networkidle0" });
 
