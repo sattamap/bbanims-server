@@ -30,8 +30,8 @@ const port = process.env.PORT || 5000;
 app.use(
   cors({
     origin: [
-      "https://bbsms-7bec2.web.app", // Live site (Firebase Hosting)
-      "https://bbsms-7bec2.firebaseapp.com", // Firebase fallback domain
+      "https://bbsms-5a136.web.app", // Live site (Firebase Hosting)
+      "https://bbsms-5a136.firebaseapp.com", // Firebase fallback domain
       "http://localhost:5173", 
     ],
     credentials: true,
@@ -95,7 +95,7 @@ const verifyToken = (req, res, next) => {
   });
 
 // MongoDB connection URI
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.al6vbwd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.zn9p2it.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: {
