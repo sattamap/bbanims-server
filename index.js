@@ -3,10 +3,8 @@ require("dotenv").config();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const app = express();
-const port = process.env.PORT || 5000;
 
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 function isValidObjectId(id) {
   if (!ObjectId.isValid(id)) return false;
@@ -25,14 +23,15 @@ const generateItemPDF = require("./utils/generateItemPDF");
 const generateRecordPDF = require("./utils/generateRecordPDF");
 const generateNotificationPDF = require("./utils/generateNotificationPDF");
 
-
+const app = express();
+const port = process.env.PORT || 5000;
 
 // Middleware
 app.use(
   cors({
     origin: [
-      "https://bbsms-5a136.web.app", // Live site (Firebase Hosting)
-      "https://bbsms-5a136.firebaseapp.com", // Firebase fallback domain
+      "https://bbsms-7bec2.web.app", // Live site (Firebase Hosting)
+      "https://bbsms-7bec2.firebaseapp.com", // Firebase fallback domain
       "http://localhost:5173", 
     ],
     credentials: true,
@@ -42,15 +41,22 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-// Handle preflight requests explicitly (important for Render)
-app.options("*", cors({
-  origin: [
-    "https://bbsms-7bec2.web.app",
-    "https://bbsms-7bec2.firebaseapp.com",
-    "http://localhost:5173",
-  ],
-  credentials: true,
-}));
+const verifyToken = (req, res, next) => {
+  const token = req.cookies.token;
+
+  if (!token) return res.status(401).send({ message: "Unauthorized" });
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      if (err.name === "TokenExpiredError") {
+        return res.status(401).send({ message: "TokenExpired" });
+      }
+      return res.status(403).send({ message: "Forbidden" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
 
 
   app.post("/api/generate-pdf", async (req, res) => {
@@ -89,7 +95,7 @@ app.options("*", cors({
   });
 
 // MongoDB connection URI
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.zn9p2it.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.al6vbwd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -98,54 +104,6 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
-
-
-// Generate JWT token
-  app.post("/jwt", (req, res) => {
-    const user = req.body;
-    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: "2h",
-    });
-
-    res
-      .cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      })
-      .send({ success: true });
-  });
-
-  // Clear JWT cookie
-  app.post("/logout", (req, res) => {
-    res
-      .clearCookie("token", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-        path: "/",
-      })
-      .send({ success: true });
-  });
-
-
-const verifyToken = (req, res, next) => {
-  const token = req.cookies.token;
-
-  if (!token) return res.status(401).send({ message: "Unauthorized" });
-
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-    if (err) {
-      if (err.name === "TokenExpiredError") {
-        return res.status(401).send({ message: "TokenExpired" });
-      }
-      return res.status(403).send({ message: "Forbidden" });
-    }
-    req.user = decoded;
-    next();
-  });
-};
-
 
 let dbMap = {};
 
@@ -174,6 +132,34 @@ function createRoutesForBlock(block) {
 
 
   
+  // Generate JWT token
+  app.post("/jwt", (req, res) => {
+    const user = req.body;
+    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+      expiresIn: "2h",
+    });
+
+    res
+      .cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      })
+      .send({ success: true });
+  });
+
+  // Clear JWT cookie
+  app.post("/logout", (req, res) => {
+    res
+      .clearCookie("token", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+        path: "/",
+      })
+      .send({ success: true });
+  });
+
   app.get(`${prefix}/items`, verifyToken, async (req, res) => {
     try {
       const items = await itemsCollection.find({}).toArray();
