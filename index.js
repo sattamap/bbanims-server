@@ -3,8 +3,10 @@ require("dotenv").config();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
-
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const app = express();
+const port = process.env.PORT || 5000;
+
 
 function isValidObjectId(id) {
   if (!ObjectId.isValid(id)) return false;
@@ -23,8 +25,7 @@ const generateItemPDF = require("./utils/generateItemPDF");
 const generateRecordPDF = require("./utils/generateRecordPDF");
 const generateNotificationPDF = require("./utils/generateNotificationPDF");
 
-const app = express();
-const port = process.env.PORT || 5000;
+
 
 // Middleware
 app.use(
@@ -41,22 +42,15 @@ app.use(
 app.use(express.json());
 app.use(cookieParser());
 
-const verifyToken = (req, res, next) => {
-  const token = req.cookies.token;
-
-  if (!token) return res.status(401).send({ message: "Unauthorized" });
-
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-    if (err) {
-      if (err.name === "TokenExpiredError") {
-        return res.status(401).send({ message: "TokenExpired" });
-      }
-      return res.status(403).send({ message: "Forbidden" });
-    }
-    req.user = decoded;
-    next();
-  });
-};
+// Handle preflight requests explicitly (important for Render)
+app.options("*", cors({
+  origin: [
+    "https://bbsms-7bec2.web.app",
+    "https://bbsms-7bec2.firebaseapp.com",
+    "http://localhost:5173",
+  ],
+  credentials: true,
+}));
 
 
   app.post("/api/generate-pdf", async (req, res) => {
@@ -105,34 +99,8 @@ const client = new MongoClient(uri, {
   },
 });
 
-let dbMap = {};
 
-async function connectDatabases() {
-  //await client.connect();
-  dbMap["head-items"] = client.db("sms-head-items");
-  dbMap["local-items"] = client.db("sms-local-items");
-  dbMap["head-services"] = client.db("sms-head-services");
-  dbMap["local-services"] = client.db("sms-local-services");
-  dbMap["main"] = client.db("sms-main");
-  console.log("✅ Connected to all SMS databases");
-}
-
-function getDB(block) {
-  return dbMap[block];
-}
-
-function createRoutesForBlock(block) {
-  const itemsDB = getDB(`${block}-items`);
-  const servicesDB = getDB(`${block}-services`);
-  const prefix = `/${block}`;
-
-  const itemsCollection = itemsDB.collection("items");
-  const servicesCollection = servicesDB.collection("services");
-  const recordsCollection = itemsDB.collection("records");
-
-
-  
-  // Generate JWT token
+// Generate JWT token
   app.post("/jwt", (req, res) => {
     const user = req.body;
     const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
@@ -160,6 +128,52 @@ function createRoutesForBlock(block) {
       .send({ success: true });
   });
 
+
+const verifyToken = (req, res, next) => {
+  const token = req.cookies.token;
+
+  if (!token) return res.status(401).send({ message: "Unauthorized" });
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+    if (err) {
+      if (err.name === "TokenExpiredError") {
+        return res.status(401).send({ message: "TokenExpired" });
+      }
+      return res.status(403).send({ message: "Forbidden" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
+
+
+let dbMap = {};
+
+async function connectDatabases() {
+  //await client.connect();
+  dbMap["head-items"] = client.db("sms-head-items");
+  dbMap["local-items"] = client.db("sms-local-items");
+  dbMap["head-services"] = client.db("sms-head-services");
+  dbMap["local-services"] = client.db("sms-local-services");
+  dbMap["main"] = client.db("sms-main");
+  console.log("✅ Connected to all SMS databases");
+}
+
+function getDB(block) {
+  return dbMap[block];
+}
+
+function createRoutesForBlock(block) {
+  const itemsDB = getDB(`${block}-items`);
+  const servicesDB = getDB(`${block}-services`);
+  const prefix = `/${block}`;
+
+  const itemsCollection = itemsDB.collection("items");
+  const servicesCollection = servicesDB.collection("services");
+  const recordsCollection = itemsDB.collection("records");
+
+
+  
   app.get(`${prefix}/items`, verifyToken, async (req, res) => {
     try {
       const items = await itemsCollection.find({}).toArray();
